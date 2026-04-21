@@ -1,0 +1,151 @@
+{
+  "model": "models/selfrag_llama2_7b",
+  "num_test_cases": 7,
+  "token_distribution": {
+    "Utility:5": 7,
+    "No Retrieval": 2,
+    "Retrieval": 2,
+    "Continue to Use Evidence": 2,
+    "Relevant": 2,
+    "Fully supported": 2
+  },
+  "results": [
+    {
+      "id": 0,
+      "name": "简单事实问题（不需要检索）",
+      "query": "What is 2+2?",
+      "has_paragraph": false,
+      "raw_output": "4[Utility:5]",
+      "clean_answer": "4",
+      "reflection_tokens": {
+        "retrieval": [],
+        "relevance": [],
+        "support": [],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "模型应输出 [No Retrieval]，直接回答"
+    },
+    {
+      "id": 1,
+      "name": "常识判断（不需要检索）",
+      "query": "Leave odd one out: twitter, instagram, whatsapp.",
+      "has_paragraph": false,
+      "raw_output": "Twitter, Instagram, and WhatsApp are all social media platforms.[No Retrieval]However, WhatsApp is a messaging app, while Twitter and Instagram are both primarily used for sharing photos and videos.[No Retrieval]Therefore, WhatsApp is the odd one out in this group.[Utility:5]",
+      "clean_answer": "Twitter, Instagram, and WhatsApp are all social media platforms.However, WhatsApp is a messaging app, while Twitter and Instagram are both primarily used for sharing photos and videos.Therefore, WhatsApp is the odd one out in this group.",
+      "reflection_tokens": {
+        "retrieval": [
+          "No Retrieval"
+        ],
+        "relevance": [],
+        "support": [],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "模型应输出 [No Retrieval]，进行常识推理"
+    },
+    {
+      "id": 2,
+      "name": "知识问题（可能触发检索）",
+      "query": "Can you tell me the difference between llamas and alpacas?",
+      "has_paragraph": false,
+      "raw_output": "Sure![Retrieval]<paragraph>\n\n* Alpaca (left) and llama (right) in the Andes of southern Peru.\n\nAlpacas and llamas are both domesticated species of South American camelids.[Continue to Use Evidence]Alpacas are a much smaller than llamas, with a shoulder height of 3 to 4 feet.[Continue to Use Evidence]They are also bred specifically for their fiber, which is used to make all sorts of textiles and clothing.[Continue to Use Evidence]Llamas, on the other hand, are larger and more social, and are often kept as pets or as guard animals.[Continue to Use Evidence]They are also used as pack animals, and can carry up to 20% of their body weight.[Utility:5]",
+      "clean_answer": "Sure!<paragraph>\n\n* Alpaca (left) and llama (right) in the Andes of southern Peru.\n\nAlpacas and llamas are both domesticated species of South American camelids.Alpacas are a much smaller than llamas, with a shoulder height of 3 to 4 feet.They are also bred specifically for their fiber, which is used to make all sorts of textiles and clothing.Llamas, on the other hand, are larger and more social, and are often kept as pets or as guard animals.They are also used as pack animals, and can carry up to 20% of their body weight.",
+      "reflection_tokens": {
+        "retrieval": [
+          "Retrieval",
+          "Continue to Use Evidence"
+        ],
+        "relevance": [],
+        "support": [],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "模型应输出 [Retrieval]，表示需要外部知识"
+    },
+    {
+      "id": 3,
+      "name": "知识问题 + 检索段落",
+      "query": "Can you tell me the difference between llamas and alpacas?",
+      "has_paragraph": true,
+      "raw_output": "[Relevant]Alpacas are considerably smaller than llamas.[Fully supported][Utility:5]",
+      "clean_answer": "Alpacas are considerably smaller than llamas.",
+      "reflection_tokens": {
+        "retrieval": [],
+        "relevance": [
+          "Relevant"
+        ],
+        "support": [
+          "Fully supported"
+        ],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "模型应输出 [Relevant] + [Fully supported] + 高 Utility"
+    },
+    {
+      "id": 4,
+      "name": "科学问题（需要检索）",
+      "query": "What is overfitting in machine learning?",
+      "has_paragraph": true,
+      "raw_output": "[Relevant]Overfitting is a problem that occurs when a machine learning model is too complex and fits too closely to the training data.[Fully supported][Continue to Use Evidence]This can lead to the model performing poorly on new, unseen data.[Utility:5]",
+      "clean_answer": "Overfitting is a problem that occurs when a machine learning model is too complex and fits too closely to the training data.This can lead to the model performing poorly on new, unseen data.",
+      "reflection_tokens": {
+        "retrieval": [
+          "Continue to Use Evidence"
+        ],
+        "relevance": [
+          "Relevant"
+        ],
+        "support": [
+          "Fully supported"
+        ],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "模型应利用文档生成准确回答"
+    },
+    {
+      "id": 5,
+      "name": "中文问题测试",
+      "query": "中国的首都是哪里？",
+      "has_paragraph": false,
+      "raw_output": "首都是北京。[Utility:5]",
+      "clean_answer": "首都是北京。",
+      "reflection_tokens": {
+        "retrieval": [],
+        "relevance": [],
+        "support": [],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "测试中文支持（Llama 2 对中文支持有限）"
+    },
+    {
+      "id": 6,
+      "name": "健康事实核查",
+      "query": "Is it true that drinking 8 glasses of water a day is necessary for good health?",
+      "has_paragraph": false,
+      "raw_output": "It's important to stay hydrated, but the exact amount of water needed varies from person to person.[Retrieval]<paragraph><paragraph><paragraph><paragraph><paragraph><paragraph>\nIt's important to stay hydrated, but the exact amount of water needed varies from person to person.[No Retrieval]Some people may need more than 8 glasses a day, while others may need less.[No Retrieval]It's best to drink water when you're thirsty and listen to your body's needs.[Utility:5]",
+      "clean_answer": "It's important to stay hydrated, but the exact amount of water needed varies from person to person.<paragraph><paragraph><paragraph><paragraph><paragraph><paragraph>\nIt's important to stay hydrated, but the exact amount of water needed varies from person to person.Some people may need more than 8 glasses a day, while others may need less.It's best to drink water when you're thirsty and listen to your body's needs.",
+      "reflection_tokens": {
+        "retrieval": [
+          "No Retrieval",
+          "Retrieval"
+        ],
+        "relevance": [],
+        "support": [],
+        "utility": [
+          "Utility:5"
+        ]
+      },
+      "expected_behavior": "测试事实核查场景"
+    }
+  ]
+}
