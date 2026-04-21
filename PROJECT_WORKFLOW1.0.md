@@ -41,6 +41,7 @@
 | `models--sentence-transformers--all-...` | Sentence Transformer | ~0.5GB | ✅ 检索 embedding 备用 |
 
 **符号链接创建方法**：
+
 ```bash
 # 查找 snapshot 路径并创建链接
 SNAPSHOT=$(ls -d /NAS/yesh/hf_cache/hub/models--<org>--<name>/snapshots/*/ | head -1)
@@ -48,6 +49,7 @@ ln -s "$SNAPSHOT" /NAS/yesh/NLP/models/<name>
 ```
 
 **未来下载新模型的标准流程**：
+
 ```bash
 # 1. 下载到 HF Cache（不指定 --local-dir）
 huggingface-cli download <repo_id>
@@ -83,11 +85,13 @@ export PYTHONPATH=/NAS/yesh/NLP
 
 > [!WARNING]
 > **pip 安装路径问题**：conda 环境的 site-packages 权限可能受限，导致 `pip install` 自动回退到 `--user`（安装到 `/home/wujcan/.local/`）。
-> 
+>
 > **解决方案**：始终使用完整路径调用 pip：
+>
 > ```bash
 > /NAS/yesh/NLP/.conda/selfrag/bin/pip install <package>
 > ```
+>
 > 或确保 `export PATH="/NAS/yesh/NLP/.conda/selfrag/bin:$PATH"` 在 pip 前执行。
 
 ### GPU 使用情况（2026-04-21 00:48 快照）
@@ -166,6 +170,7 @@ CUDA_VISIBLE_DEVICES=2 python scripts/quick_inference.py \
 ```
 
 **预期输出**：
+
 - 7 个测试场景的推理结果
 - 每个结果包含反思 Token 分析（`[Retrieval]`/`[No Retrieval]`/`[Relevant]` 等）
 - 结果保存到 `results/quick_inference_results.json`
@@ -173,6 +178,7 @@ CUDA_VISIBLE_DEVICES=2 python scripts/quick_inference.py \
 **预期耗时**：2-3 分钟（模型加载 ~1 分钟，推理 ~1 分钟）
 
 **验证标准**：
+
 - ✅ 简单数学题（2+2）应触发 `[No Retrieval]`
 - ✅ 知识问题（llama vs alpaca）应触发 `[Retrieval]`
 - ✅ 有检索段落输入时应出现 `[Relevant]` + `[Fully supported]`
@@ -215,6 +221,7 @@ print('所有模型链接验证通过 ✅')
 ```
 
 **后续模型下载**（进入改进实验阶段时执行）：
+
 ```bash
 # Llama 3.1 8B（改进实验 I1）
 huggingface-cli download meta-llama/Llama-3.1-8B
@@ -255,6 +262,7 @@ cd data/eval && unzip -o eval_data.zip && cd /NAS/yesh/NLP
 ```
 
 **数据校验**：
+
 ```bash
 python -c "
 import json, os, glob
@@ -293,7 +301,7 @@ print(f'冒烟测试数据: 100 条')
 # 用 1 张 GPU 跑 1 个 epoch 冒烟测试
 cd self-rag/data_creation
 
-CUDA_VISIBLE_DEVICES=2 python train_special_tokens.py \
+CUDA_VISIBLE_DEVICES=3 python train_special_tokens.py \
     --model_name_or_path /NAS/yesh/NLP/models/Llama-2-7b-hf \
     --data_path /NAS/yesh/NLP/data/critic/critic_smoke_test.json \
     --use_special_token True \
@@ -347,6 +355,7 @@ CUDA_VISIBLE_DEVICES=2,3 bash scripts/train_critic.sh
 | 预计时间 | **8-12 小时** | |
 
 **监控**：
+
 ```bash
 # 在另一个 tmux 窗口或新 SSH 中
 tail -f /NAS/yesh/NLP/logs/critic_train.log

@@ -1,0 +1,38 @@
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:01<00:01,  1.60s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:02<00:00,  1.04s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:02<00:00,  1.13s/it]
+WARNING:root:Loading data...
+WARNING:root:Formatting inputs...
+WARNING:root:Tokenizing inputs... This may take some time...
+WARNING:accelerate.utils.other:Detected kernel version 5.4.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+# of new special tokens: 15
+[2026-04-21 13:57:07,002] [INFO] [real_accelerator.py:203:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/deepspeed/runtime/zero/linear.py:49: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  def forward(ctx, input, weight, bias=None):
+/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/deepspeed/runtime/zero/linear.py:67: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  def backward(ctx, grad_output):
+[93m [WARNING] [0m async_io requires the dev libaio .so object and headers but these were not found.
+[93m [WARNING] [0m async_io: please install the libaio-dev package with apt
+[93m [WARNING] [0m If libaio is already installed (perhaps from source), try setting the CFLAGS and LDFLAGS environment variables to where it can be found.
+[93m [WARNING] [0m Please specify the CUTLASS repo directory as environment variable $CUTLASS_PATH
+[93m [WARNING] [0m sparse_attn requires a torch version >= 1.5 and < 2.0 but detected 2.4
+[93m [WARNING] [0m using untested triton version (3.0.0), only 1.0.0 is known to be compatible
+  0%|          | 0/25 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/NAS/yesh/NLP/self-rag/data_creation/train_special_tokens.py", line 362, in <module>
+    train()
+  File "/NAS/yesh/NLP/self-rag/data_creation/train_special_tokens.py", line 356, in train
+    trainer.train()
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/transformers/trainer.py", line 1948, in train
+    return inner_training_loop(
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/transformers/trainer.py", line 2289, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs)
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/transformers/trainer.py", line 3359, in training_step
+    self.accelerator.backward(loss, **kwargs)
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/accelerate/accelerator.py", line 2159, in backward
+    loss.backward(**kwargs)
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/torch/_tensor.py", line 521, in backward
+    torch.autograd.backward(
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/torch/autograd/__init__.py", line 289, in backward
+    _engine_run_backward(
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/torch/autograd/graph.py", line 768, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 86.00 MiB. GPU 0 has a total capacity of 44.35 GiB of which 61.44 MiB is free. Including non-PyTorch memory, this process has 44.28 GiB memory in use. Of the allocated memory 43.03 GiB is allocated by PyTorch, and 954.84 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+  0%|          | 0/25 [00:01<?, ?it/s]

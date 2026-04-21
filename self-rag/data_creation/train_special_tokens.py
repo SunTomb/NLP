@@ -24,7 +24,7 @@ from transformers import Trainer
 import json
 import io
 import os
-from ..retrieval_lm.llama_flash_attn_monkey_patch import replace_llama_attn_with_flash_attn
+#from ..retrieval_lm.llama_flash_attn_monkey_patch import replace_llama_attn_with_flash_attn
 
 IGNORE_INDEX = -100
 DEFAULT_PAD_TOKEN = "[PAD]"
@@ -36,6 +36,12 @@ PROMPT_DICT = {
         "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
     ),
     "prompt_no_input": (
+        "### Instruction:\n{instruction}\n\n### Response:"
+    ),
+    "prompt_no_input_paragraph": (
+        "### Instruction:\n{instruction}\n\n### Response:"
+    ),
+    "prompt_no_input_separated": (
         "### Instruction:\n{instruction}\n\n### Response:"
     ),
 }
@@ -284,11 +290,20 @@ def train():
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     if model_args.use_flash_attn:
-        replace_llama_attn_with_flash_attn()
+        #replace_llama_attn_with_flash_attn()
+        pass
 
+    # 根据训练精度设置模型加载 dtype，避免 fp32 加载浪费显存
+    if training_args.bf16:
+        model_dtype = torch.bfloat16
+    elif training_args.fp16:
+        model_dtype = torch.float16
+    else:
+        model_dtype = None
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=training_args.cache_dir,
+        torch_dtype=model_dtype,
     )
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
