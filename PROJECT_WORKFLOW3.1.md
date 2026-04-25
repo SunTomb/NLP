@@ -68,11 +68,13 @@ Step 27,300   → Loss 0.21   (最终，总下降 94.7%)
 ```
 
 **收敛分析**：
+
 - 每个 epoch 边界有明显的 loss 阶梯式下降（0.82→0.43→0.20），符合 SFT 训练的典型模式
 - 最终 loss 0.21 与 Critic 的 0.22 高度一致，说明模型已充分拟合训练数据
 - 从 step 20000 到 27306，loss 在 0.19-0.22 之间波动，无过拟合迹象
 
 **Step 9 后验证**：
+
 ```
 Generator 模型加载成功 ✅
   参数量: 6.74B
@@ -94,6 +96,7 @@ Generator 模型加载成功 ✅
 
 > [!IMPORTANT]
 > Generator 模型已就绪。现在需要评测 3 个模型的性能对比：
+>
 > 1. **Our Generator**（我们复现训练的）
 > 2. **Official Self-RAG**（官方预训练模型）
 > 3. **Vanilla Llama 2**（基线）
@@ -104,77 +107,70 @@ Generator 模型加载成功 ✅
 
 | 任务 | 类型 | 数据文件 | 指标 |
 |------|------|---------|------|
-| PopQA | Short-form QA | `data/eval/popqa_longtail.jsonl` | match (EM) |
-| ARC-Challenge | Multiple Choice | `data/eval/arc_challenge.jsonl` | match |
-| TriviaQA | Short-form QA | `data/eval/triviaqa.jsonl` | match |
-| PubHealth | Fact Verification | `data/eval/pubhealth.jsonl` | match |
-| ASQA | Long-form QA | `data/eval/asqa.jsonl` | str-em, rouge-L |
-| FactScore | Biography | `data/eval/factscore.jsonl` | factscore |
+| PopQA | Short-form QA | `data/eval/popqa_longtail_w_gs.jsonl` | match (substring) |
+| ARC-Challenge | Multiple Choice | `data/eval/arc_challenge_processed.jsonl` | match |
+| TriviaQA | Short-form QA | `data/eval/triviaqa_test_w_gs.jsonl` | match |
 
 #### 10.2 评测命令（no_retrieval 模式）
 
 > [!TIP]
 > 先用 `no_retrieval` 模式评测（不需要检索器），比较模型自身的生成能力。后续可以加入检索器做 `retrieval` 模式对比。
 
+> [!NOTE]
+> **显存说明**：评测脚本使用 **vLLM** 推理引擎（非 HuggingFace generate），模型以 fp16 加载。7B 模型权重 ~14GB，加上 vLLM 的 KV cache 预分配，**每个评测任务固定占用 ~16-20 GB 显存**，与数据集大小无关。显存远低于训练时的 35-40GB，单卡 A40 (44GB) 充裕。
+>
+> **时间说明**：`no_retrieval` 模式下每条样本只做一次前向推理。vLLM 在 A40 上 7B 模型的吞吐约 **0.05-0.15 s/sample**（取决于 `max_new_tokens`）。模型加载约需 1-2 分钟，各数据集间可复用同一进程（但当前脚本每次需重新加载）。
+
+**评测资源总览**（3 任务 × 3 模型 = 9 次评测）：
+
+| 任务 | 数据文件 | 数据量 | max_new_tokens | 显存 | 预计耗时（含加载） |
+|------|---------|:------:|:--------------:|:----:|:-----------------:|
+| PopQA | `popqa_longtail_w_gs.jsonl` | ~14K | 100 | ~18 GB | **15-25 分钟** |
+| ARC-Challenge | `arc_challenge_processed.jsonl` | ~1.2K | 50 | ~18 GB | **3-5 分钟** |
+| TriviaQA | `triviaqa_test_w_gs.jsonl` | ~11K | 100 | ~18 GB | **12-20 分钟** |
+| **单模型合计** | — | — | — | ~18 GB | **~30-50 分钟** |
+| **3 模型合计** | — | — | — | ~18 GB | **~1.5-2.5 小时** |
+
+> [!NOTE]
+> PubHealth 评测数据不可用（未下载），暂时跳过。
+
+**一键运行**（推荐使用批量脚本）：
+
 ```bash
 source /NAS/yesh/NLP/activate.sh
 cd /NAS/yesh/NLP
 
-# === 模型 1: 我们复现的 Generator ===
-
-# PopQA
-CUDA_VISIBLE_DEVICES=5 python self-rag/retrieval_lm/run_short_form.py \
-    --model_name outputs/generator_llama2_7b \
-    --input_file data/eval/popqa_longtail.jsonl \
-    --max_new_tokens 100 --threshold 0.2 \
-    --output_file results/popqa_our.json \
-    --metric match --ndocs 0 --no_retrieval
-
-# ARC-Challenge
-CUDA_VISIBLE_DEVICES=5 python self-rag/retrieval_lm/run_short_form.py \
-    --model_name outputs/generator_llama2_7b \
-    --input_file data/eval/arc_challenge.jsonl \
-    --max_new_tokens 50 --threshold 0.2 \
-    --output_file results/arc_our.json \
-    --metric match --ndocs 0 --no_retrieval
-
-# TriviaQA
-CUDA_VISIBLE_DEVICES=5 python self-rag/retrieval_lm/run_short_form.py \
-    --model_name outputs/generator_llama2_7b \
-    --input_file data/eval/triviaqa.jsonl \
-    --max_new_tokens 100 --threshold 0.2 \
-    --output_file results/triviaqa_our.json \
-    --metric match --ndocs 0 --no_retrieval
-
-# PubHealth
-CUDA_VISIBLE_DEVICES=5 python self-rag/retrieval_lm/run_short_form.py \
-    --model_name outputs/generator_llama2_7b \
-    --input_file data/eval/pubhealth.jsonl \
-    --max_new_tokens 50 --threshold 0.2 \
-    --output_file results/pubhealth_our.json \
-    --metric match --ndocs 0 --no_retrieval
-
-
-# === 模型 2: 官方 Self-RAG（基线对比） ===
-# 替换 --model_name 为 models/selfrag_llama2_7b，output_file 改为 *_official.json
-
-# === 模型 3: Vanilla Llama 2（基线） ===
-# 替换 --model_name 为 models/Llama-2-7b-hf，output_file 改为 *_llama2.json
+# 在 tmux 中运行，防止断连
+tmux new -s eval
+CUDA_VISIBLE_DEVICES=1 bash scripts/run_eval_all.sh
 ```
 
-#### 10.3 预计结果
+脚本会依次评测 3 个模型（our → official → llama2）× 3 个任务，自动记录日志并在结束时打印分数汇总表。
 
-基于论文 Table 2（no retrieval 模式）：
+详见 [`scripts/run_eval_all.sh`](scripts/run_eval_all.sh)。
 
-| 任务 | Llama2-7B | Self-RAG (论文) | 我们的目标 |
-|------|:---------:|:---------------:|:---------:|
-| PopQA | ~21% | ~54% | >45% |
-| ARC-C | ~45% | ~67% | >55% |
-| TriviaQA | ~55% | ~69% | >60% |
-| PubHealth | ~45% | ~69% | >55% |
+#### 10.3 评测结果 ✅ (2026-04-26)
+
+**评测模式**：`no_retrieval`（不使用外部检索器，纯模型生成能力）
+**评测脚本**：`self-rag/retrieval_lm/run_eval_batch.py`（批量推理版）
+**日志**：`logs/eval_all_20260426_020947.log`
+
+| 任务 | Our Generator | Official Self-RAG | Vanilla Llama 2 | Paper (w/ retrieval) |
+|------|:---:|:---:|:---:|:---:|
+| PopQA | ⚠️ 100%* | ⚠️ 99.99%* | ⚠️ 99.99%* | ~54.9% |
+| **ARC-C** | **57.25%** | **64.25%** | **39.25%** | ~67.3% |
+| **TriviaQA** | **31.50%** | **38.80%** | **5.50%** | ~68.5% |
 
 > [!WARNING]
-> 我们的训练数据是从 HuggingFace 下载的（与论文原始数据可能有细微差异），且使用了 Adafactor 而非 AdamW。结果可能与论文数值有 5-10% 偏差，属于正常范围。
+> \* PopQA 的 `match()` 指标使用子串匹配，在 no_retrieval 模式下模型生成长文本，
+> 短答案字符串几乎总是被包含在输出中，导致所有模型均出现虚假高分。
+> 此结果不可直接用于论文对比，建议使用 `always_retrieve` 模式重新评测。
+
+**关键结论**：
+- ✅ **微调有效**：Our Generator 在 ARC-C (+18%) 和 TriviaQA (+26%) 上大幅优于 Vanilla Llama 2
+- ✅ **与官方差距合理**：ARC-C 差 7%，TriviaQA 差 7.3%，考虑数据量差异属正常
+- ✅ **模型排序正确**：Official > Our > Llama2
+- ⚠️ no_retrieval 模式分数整体低于论文（论文使用了 retrieval 模式），属预期行为
 
 ---
 
@@ -227,7 +223,7 @@ Week:  W1(4/21)──W2(4/28)──W3(5/5)──W4(5/12)──W5(5/19)──W6(5
 | M4: Critic 训练 | 4/22 | 3 epoch, loss=0.22 | ✅ |
 | M5: Generator 冒烟 | 4/22 | 100 条无 crash | ✅ |
 | **M6: Generator 训练** | **4/25** | **3 epoch, loss=0.21** | **✅** |
-| **M7: 复现评测** | **W2 4/28** | **4 任务 + 3 模型对比** | **◀ 下一步** |
+| **M7: 复现评测** | **4/26** | **3 任务 × 3 模型对比** | **✅** |
 | M8: 改进实验 | W4-5 5/12 | Qwen / 中文 / 消融 | 🔲 |
 | M9: 报告初稿 | W6 5/26 | ≥ 5000 字完整报告 | 🔲 |
 | M10: 最终提交 | W8 6/15 | 报告 + 代码 + Demo | 🔲 |
@@ -263,7 +259,8 @@ tail -f results/*.json
 │   │   └── train_special_tokens.py   # Critic 训练 ✅
 │   └── retrieval_lm/
 │       ├── finetune.py               # Generator 训练 ✅
-│       ├── run_short_form.py         # Short-form 评测 ← 下一步使用
+│       ├── run_short_form.py         # Short-form 评测（原版，逐条推理）
+│       ├── run_eval_batch.py          # Short-form 批量评测 ✅
 │       └── run_long_form_static.py   # Long-form 评测
 ├── data/
 │   ├── critic/
@@ -271,11 +268,10 @@ tail -f results/*.json
 │   │   └── critic_smoke_test.json        # 100 条
 │   ├── generator/                        # 145K 条     ✅
 │   │   └── train.jsonl
-│   └── eval/                             # 评测数据集  ← 下一步使用
-│       ├── popqa_longtail.jsonl
-│       ├── arc_challenge.jsonl
-│       ├── triviaqa.jsonl
-│       └── pubhealth.jsonl
+│   └── eval/                             # 评测数据集  ✅
+│       ├── popqa_longtail_w_gs.jsonl     # 14,267 条
+│       ├── arc_challenge_processed.jsonl  # 1,172 条
+│       └── triviaqa_test_w_gs.jsonl       # 2,000 条
 ├── outputs/
 │   ├── critic_smoke/              # 冒烟产出         ✅
 │   ├── critic_llama2_7b/          # 正式 Critic      ✅
@@ -287,7 +283,8 @@ tail -f results/*.json
 │       ├── tokenizer.json + tokenizer.model
 │       ├── config.json + generation_config.json
 │       └── step_{5000,10000,15000,20000,25000}/  # checkpoints
-├── results/                       # 评测结果  ← 下一步生成
+├── results/                       # 评测结果  ✅
+│   ├── {popqa,arc,triviaqa}_{our,official,llama2}.json
 ├── models/                        # 符号链接
 │   ├── selfrag_llama2_7b → HF Cache
 │   ├── Llama-2-7b-hf → HF Cache
@@ -296,12 +293,15 @@ tail -f results/*.json
     ├── critic_smoke_*.log          # 冒烟日志
     ├── critic_train_*.log          # Critic 训练日志   ✅
     ├── gen_smoke_*.log             # Generator 冒烟    ✅
-    └── gen_train_20260423_010758.log  # Generator 训练  ✅ (66.5h)
+    ├── gen_train_20260423_010758.log  # Generator 训练  ✅ (66.5h)
+    └── eval_all_20260426_020947.log   # 全面评测        ✅
 ```
 
 ---
 
-> **立即行动**：
-> 1. 确认评测数据集存在且格式正确
-> 2. 运行 PopQA no_retrieval 评测（Step 10.2）
-> 3. 逐个评测 4 个任务 × 3 个模型
+> **下一步行动**：
+>
+> 1. ✅ ~~全面评测~~ 已完成（2026-04-26）
+> 2. （可选）使用 `always_retrieve` 模式重新评测 PopQA，获取真实准确率
+> 3. 开始 Step 11: 改进实验（Qwen 基座 / 中文适配）
+> 4. 开始报告撰写

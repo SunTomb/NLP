@@ -54,8 +54,10 @@ def call_model_rerank_w_scores_batch(prompt, evidences, model, max_new_tokens=15
                                      w_rel=1.0, w_sup=1.0, w_use=0.5, mode="adaptive_retrieval", closed=False):
     results = {}
     if mode != "always_retrieve":
+        # vLLM 0.5.5 limits logprobs to 20 max; no_retrieval mode doesn't need them
+        _logprobs = None if mode == "no_retrieval" else 20
         sampling_params = SamplingParams(
-            temperature=0.0, top_p=1.0, max_tokens=max_new_tokens, logprobs=32016)
+            temperature=0.0, top_p=1.0, max_tokens=max_new_tokens, logprobs=_logprobs)
         preds = model.generate([prompt], sampling_params)
         pred_token_ids = preds[0].outputs[0].token_ids
         pred_text = preds[0].outputs[0].text
@@ -86,7 +88,7 @@ def call_model_rerank_w_scores_batch(prompt, evidences, model, max_new_tokens=15
         evidence_augmented_inputs = [prompt + "[Retrieval]<paragraph>{0}\n{1}</paragraph>".format(
             para["title"], para["text"]) for para in evidences]
         sampling_params = SamplingParams(
-            temperature=0.0, top_p=1.0, max_tokens=max_new_tokens, logprobs=5000)
+            temperature=0.0, top_p=1.0, max_tokens=max_new_tokens, logprobs=20)
         preds = model.generate(evidence_augmented_inputs, sampling_params)
 
         relevance_score_dict = {}
@@ -300,10 +302,12 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(gpt, padding_side="left")
     if args.dtype is not None:
         model = LLM(model=gpt, download_dir=args.download_dir,
-                    dtype=args.dtype, tensor_parallel_size=args.world_size,)
+                    dtype=args.dtype, tensor_parallel_size=args.world_size,
+                    gpu_memory_utilization=0.85)
     else:
         model = LLM(model=gpt, download_dir=args.download_dir,
-                    dtype=args.dtype, tensor_parallel_size=args.world_size,)
+                    dtype=args.dtype, tensor_parallel_size=args.world_size,
+                    gpu_memory_utilization=0.85)
 
     # Get token ids for reflection tokens.
     ret_tokens, rel_tokens, grd_tokens, ut_tokens = load_special_tokens(
@@ -312,7 +316,7 @@ def main():
     def generate(prompt, evidences, max_new_tokens):
         return call_model_rerank_w_scores_batch(prompt, evidences=evidences, model=model, max_new_tokens=max_new_tokens,
                                                 rel_tokens=rel_tokens, ret_tokens=ret_tokens, grd_tokens=grd_tokens, ut_tokens=ut_tokens,
-                                                threshold=args.threshold, max_depth=args.max_depth, use_seqscore=args.use_seqscore,
+                                                threshold=args.threshold, use_seqscore=args.use_seqscore,
                                                 w_rel=args.w_rel, w_sup=args.w_sup, w_use=args.w_use, mode=args.mode, closed=args.task in ["fever", "arc_c"])
 
     preds = []
