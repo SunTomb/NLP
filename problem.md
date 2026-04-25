@@ -482,6 +482,127 @@ model = transformers.AutoModelForCausalLM.from_pretrained(
 
 ---
 
+### P13: NCCL 超时 —— tokenize 阶段各 rank 速度差异
+
+**问题描述**：
+使用 4 卡 FSDP 训练 Generator 时，在 tokenize 145K 条数据阶段 NCCL 超时崩溃：
+
+```
+torch.distributed.DistBackendError: NCCL communicator was aborted on rank 2.
+Original reason for aborting was: watchdog callback timed out
+```
+
+**根因分析**：
+`finetune.py` 使用 `accelerator.main_process_first()` + `datasets.map()` 进行 tokenize。虽然 `main_process_first()` 意图让主进程先处理、其他进程读缓存，但实际上每个 rank 可能都独立 tokenize 了 145K 条（缓存目录冲突）。由于 4 个进程在不同 GPU 上速度有差异，最快的 rank 完成 tokenize 后等待其他 rank，**超过默认 600 秒（10 分钟）超时**后 NCCL 通信中断。
+
+**解决方案**：
+在 `finetune.py` 中增大 NCCL 超时时间到 30 分钟：
+
+```python
+# 1. 环境变量层面
+os.environ.setdefault("NCCL_TIMEOUT", "1800")
+os.environ.setdefault("TORCH_NCCL_BLOCKING_WAIT", "0")
+
+# 2. Accelerator 初始化层面（关键）
+from accelerate.utils import InitProcessGroupKwargs
+import datetime
+process_group_kwargs = InitProcessGroupKwargs(timeout=datetime.timedelta(seconds=1800))
+accelerator = Accelerator(
+    gradient_accumulation_steps=args.gradient_accumulation_steps,
+    kwargs_handlers=[process_group_kwargs],
+    **accelerator_log_kwargs
+)
+```
+
+**经验总结**：
+- 仅设置环境变量 `NCCL_TIMEOUT` 不够，必须通过 `InitProcessGroupKwargs` 在代码层面传递
+- 大规模数据 tokenize（>100K 条）是 FSDP 训练的隐形瓶颈
+- 更优方案是预先 tokenize 数据并保存为 Arrow 格式（`dataset.save_to_disk()`），完全避免训练时 tokenize
+
+---
+
+### P14: FSDP 下 AdamW OOM —— 优化器状态超出显存
+
+**问题描述**：
+解决 P13 后 tokenize 成功完成，但第一个 `optimizer.step()` 时 OOM：
+
+```
+[rank2]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 152.00 MiB.
+GPU 2 has a total capacity of 44.35 GiB of which 140.12 MiB is free.
+```
+
+**根因分析**：
+AdamW 需要为每个参数维护两个 fp32 状态（`exp_avg` + `exp_avg_sq`）。在 FSDP FULL_SHARD 模式下：
+
+| 组件 | 每卡显存 |
+|------|---------|
+| 主权重 fp32（FSDP 自动上转） | ~6.7 GB |
+| 梯度 fp32 | ~6.7 GB |
+| AdamW exp_avg (fp32) | ~6.7 GB |
+| AdamW exp_avg_sq (fp32) | ~6.7 GB |
+| 前向 bf16 参数（allgather 重建） | ~13.4 GB |
+| 激活值（gradient_checkpointing） | ~8-15 GB |
+| **总计** | **~49-56 GB > 44 GB** |
+
+FSDP mixed precision 的 `Upcasted low precision parameters` 警告正是关键线索——FSDP 会将 bf16 参数上转为 fp32 存储主权重。
+
+**解决方案**：
+将 AdamW 替换为 Adafactor：
+
+```python
+from transformers import Adafactor
+optimizer = Adafactor(
+    optimizer_grouped_parameters,
+    lr=args.learning_rate,
+    scale_parameter=False,
+    relative_step=False,
+    warmup_init=False,
+)
+```
+
+Adafactor 将 `exp_avg_sq` 分解为行向量和列向量，每卡节省 ~12 GB。
+
+---
+
+### P15: FSDP 4 卡反而比单卡慢 4.5 倍（★ 意外发现）
+
+**问题描述**：
+解决 P13 + P14 后，4 卡 FSDP + Adafactor 成功启动训练。但观察到：
+
+| 方案 | 速度 | 每卡显存 | 预计总耗时 |
+|------|------|---------|-----------|
+| 4 卡 FSDP + Adafactor | **~40 s/step** | ~40+ GB (接近上限) | **303 小时 ❌** |
+| 单卡 Adafactor | **~8.8 s/step** | ~35 GB | **66 小时 ✅** |
+
+4 卡 FSDP 比单卡**慢了 4.5 倍**！
+
+**根因分析**：
+
+1. **FSDP allgather/reduce_scatter 通信开销**：FULL_SHARD 模式下，每次前向和反向都需要通过 NVLink/PCIe 在 4 卡间传输完整参数。对于 7B 模型，每次 allgather 需传输 ~13 GB 数据
+2. **fp32 upcast 开销**：FSDP mixed precision 将所有 bf16 参数上转为 fp32 存储，增加了内存带宽和计算负担
+3. **显存接近上限**：每卡 40+ GB / 44 GB，PyTorch 频繁执行 CUDA malloc retry，导致 GPU 实际利用率低
+4. **4 进程竞争共享资源**：NVLink 带宽、PCIe 带宽、CPU 内存等均被 4 进程共享
+
+**结论**：
+对于 7B 模型 + 44GB GPU 的配置，FSDP 的通信开销和内存压力远大于数据并行带来的吞吐提升。**单卡 Adafactor 是最优解**。
+
+**适用条件表**：
+
+| 场景 | 推荐方案 |
+|------|---------|
+| 7B 模型 + 44GB GPU | **单卡 Adafactor** |
+| 7B 模型 + 80GB GPU | 单卡 AdamW 或 2 卡 DDP |
+| 13B+ 模型 + 44GB GPU | 4 卡 FSDP（单卡放不下） |
+| 70B 模型 | 8 卡 FSDP + CPU offload |
+
+**经验总结**：
+- 多卡 ≠ 更快。FSDP 的收益在模型大到单卡放不下时才显现
+- 显存接近上限时，PyTorch 的 malloc retry 机制会严重拖慢速度
+- 在决定分布式策略前，应先在**单卡**上验证可行性
+- **教训**：工程中应该 "先跑通，再优化"，不要过早引入分布式复杂度
+
+---
+
 ## 附录：环境速查
 
 ```
@@ -496,4 +617,4 @@ GitHub:       https://github.com/SunTomb/NLP.git
 
 ---
 
-*最后更新：2026-04-21*
+*最后更新：2026-04-25*

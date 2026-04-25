@@ -6,12 +6,19 @@ import logging
 import math
 import os
 import random
+
+# NCCL 超时设为 30 分钟，避免 tokenize 阶段各 rank 速度差异导致超时
+os.environ.setdefault("NCCL_TIMEOUT", "1800")
+os.environ.setdefault("TORCH_NCCL_BLOCKING_WAIT", "0")
+
 import datasets
 import torch
 import copy
 from functools import partial
 from accelerate import Accelerator
 from accelerate.logging import get_logger
+from accelerate.utils import InitProcessGroupKwargs
+import datetime
 from accelerate.utils import set_seed
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -238,7 +245,6 @@ def _tokenize_fn(text: str, tokenizer: transformers.PreTrainedTokenizer, max_seq
             truncation=True,
     ).input_ids
     input_ids_lens = labels_lens = input_ids.ne(tokenizer.pad_token_id).sum().item()
-    print(input_ids_lens)
 
     return dict(
         input_ids=input_ids,
@@ -368,7 +374,13 @@ def main():
         accelerator_log_kwargs["log_with"] = args.report_to
         accelerator_log_kwargs["project_dir"] = args.output_dir
 
-    accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, **accelerator_log_kwargs)
+    # NCCL 超时设为 30 分钟，避免 tokenize 阶段各 rank 速度差异导致超时
+    process_group_kwargs = InitProcessGroupKwargs(timeout=datetime.timedelta(seconds=1800))
+    accelerator = Accelerator(
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        kwargs_handlers=[process_group_kwargs],
+        **accelerator_log_kwargs
+    )
 
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
@@ -432,11 +444,14 @@ def main():
         )
 
     if args.model_name_or_path:
+        # P12 fix: 显式指定 torch_dtype 避免 fp32 加载导致 OOM
+        # 7B 模型 fp32 需要 26.8GB，bf16 只需 13.4GB
         model = AutoModelForCausalLM.from_pretrained(
             args.model_name_or_path,
             from_tf=bool(".ckpt" in args.model_name_or_path),
             config=config,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
+            torch_dtype=torch.bfloat16,
         )
     else:
         logger.info("Training new model from scratch")
@@ -471,6 +486,10 @@ def main():
 
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
+    # 启用 gradient_checkpointing 节省激活值显存
+    model.gradient_checkpointing_enable()
+    print('gradient_checkpointing enabled ✅')
+
     embedding_size = model.get_input_embeddings().weight.shape[0]
     if len(tokenizer) > embedding_size:
         model.resize_token_embeddings(len(tokenizer))
@@ -515,19 +534,18 @@ def main():
         lm_datasets = lm_datasets.filter(lambda example: (example['labels'] != -100).any())
 
     train_dataset = lm_datasets["train"]
+    # 调试打印：仅打印第一条，避免小数据集越界
+    print(f"Train dataset size: {len(train_dataset)}")
     print(train_dataset[0])
-    print(train_dataset[1000])
-    print(train_dataset[500])
-    print(train_dataset[2000])
-    print(train_dataset[10000])
-    with open("processed.json", "w") as outfile:
-        new_data = []
-        for item in train_dataset:
-            print(item)
-            labels = [int(i) for i in item["labels"]]
-            input_ids = [int(i) for i in item["input_ids"]]
-            new_data.append({"labels": labels, "input_ids": input_ids})
-        json.dump(new_data, outfile)
+    # processed.json 调试输出已禁用（145K 条数据会卡死训练启动）
+    # with open("processed.json", "w") as outfile:
+    #     new_data = []
+    #     for item in train_dataset:
+    #         labels = [int(i) for i in item["labels"]]
+    #         input_ids = [int(i) for i in item["input_ids"]]
+    #         new_data.append({"labels": labels, "input_ids": input_ids})
+    #     json.dump(new_data, outfile)
+    pass
     # Log a few random samples from the training set:
     for index in random.sample(range(len(train_dataset)), 3):
         logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
@@ -553,7 +571,16 @@ def main():
             "weight_decay": 0.0,
         },
     ]
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
+    # AdamW 在 FSDP 下仍 OOM（优化器状态 ~24GB/卡），改用 Adafactor
+    # Adafactor 将 exp_avg_sq 分解为行/列向量，显存节省 ~12GB/卡
+    from transformers import Adafactor
+    optimizer = Adafactor(
+        optimizer_grouped_parameters,
+        lr=args.learning_rate,
+        scale_parameter=False,
+        relative_step=False,
+        warmup_init=False,
+    )
 
     # Scheduler and math around the number of training steps.
     overrode_max_train_steps = False

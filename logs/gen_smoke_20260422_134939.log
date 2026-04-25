@@ -1,0 +1,382 @@
+Detected kernel version 5.4.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+04/22/2026 13:50:04 - INFO - __main__ - Distributed environment: NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: no
+
+loading configuration file models/Llama-2-7b-hf/config.json
+Model config LlamaConfig {
+  "_name_or_path": "models/Llama-2-7b-hf",
+  "architectures": [
+    "LlamaForCausalLM"
+  ],
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 11008,
+  "max_position_embeddings": 4096,
+  "mlp_bias": false,
+  "model_type": "llama",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 32,
+  "num_key_value_heads": 32,
+  "pad_token_id": 0,
+  "pretraining_tp": 1,
+  "rms_norm_eps": 1e-05,
+  "rope_scaling": null,
+  "rope_theta": 10000.0,
+  "tie_word_embeddings": false,
+  "torch_dtype": "float16",
+  "transformers_version": "4.44.0",
+  "use_cache": true,
+  "vocab_size": 32000
+}
+
+loading file tokenizer.model
+loading file tokenizer.json
+loading file added_tokens.json
+loading file special_tokens_map.json
+loading file tokenizer_config.json
+loading weights file models/Llama-2-7b-hf/model.safetensors.index.json
+Instantiating LlamaForCausalLM model under default dtype torch.bfloat16.
+Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "pad_token_id": 0
+}
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:19<00:19, 19.78s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:20<00:00,  8.51s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:20<00:00, 10.20s/it]
+All model checkpoint weights were used when initializing LlamaForCausalLM.
+
+All the weights of LlamaForCausalLM were initialized from the model checkpoint at models/Llama-2-7b-hf.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use LlamaForCausalLM for predictions without further training.
+loading configuration file models/Llama-2-7b-hf/generation_config.json
+Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "do_sample": true,
+  "eos_token_id": 2,
+  "pad_token_id": 32000,
+  "temperature": 0.9,
+  "top_p": 0.6
+}
+
+You are resizing the embedding layer without providing a `pad_to_multiple_of` parameter. This means that the new embedding dimension will be 32016. This might induce some performance reduction as *Tensor Cores* will not be available. For more details about this, or help on choosing the correct value for resizing, refer to this guide: https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html#requirements-tc
+gradient_checkpointing enabled ✅
+Tokenizing and reformatting instruction data:   0%|          | 0/100 [00:00<?, ? examples/s]Tokenizing and reformatting instruction data:  45%|████▌     | 45/100 [00:00<00:00, 439.99 examples/s]Tokenizing and reformatting instruction data:  93%|█████████▎| 93/100 [00:00<00:00, 435.69 examples/s]Tokenizing and reformatting instruction data: 100%|██████████| 100/100 [00:00<00:00, 300.72 examples/s]
+398
+217
+196
+159
+131
+123
+217
+212
+466
+460
+105
+86
+114
+109
+165
+148
+281
+275
+310
+265
+170
+159
+257
+60
+211
+206
+310
+237
+94
+90
+982
+612
+427
+241
+44
+39
+269
+260
+246
+241
+289
+219
+178
+171
+291
+273
+75
+64
+727
+49
+278
+259
+776
+746
+201
+31
+60
+47
+81
+28
+137
+133
+518
+332
+573
+558
+122
+79
+77
+72
+125
+117
+445
+225
+368
+188
+195
+190
+409
+182
+364
+346
+175
+150
+96
+90
+519
+213
+595
+402
+420
+245
+227
+43
+276
+246
+240
+193
+159
+121
+113
+108
+484
+416
+255
+215
+264
+251
+287
+266
+217
+162
+255
+248
+163
+158
+241
+236
+179
+174
+280
+264
+300
+280
+286
+281
+162
+156
+216
+211
+649
+612
+169
+164
+122
+90
+473
+299
+1965
+40
+274
+103
+336
+110
+156
+151
+186
+181
+428
+395
+724
+79
+250
+241
+639
+44
+204
+137
+262
+27
+647
+642
+581
+514
+235
+231
+77
+64
+91
+86
+137
+132
+193
+173
+247
+238
+519
+496
+569
+508
+320
+311
+190
+181
+517
+351
+290
+281
+579
+528
+314
+268
+165
+158
+577
+568
+240
+234
+285
+260
+Filter:   0%|          | 0/100 [00:00<?, ? examples/s]Filter: 100%|██████████| 100/100 [00:00<00:00, 3031.71 examples/s]
+{'input_ids': tensor([    1,   835,  2799,  4080, 29901,    13,   797,   445,  3414, 29892,
+          366,   526,  2183,   263,  3030, 14880,   310,   278,  7780,   300,
+          322,  1139, 29889,  3575,  3414,   338,   304,  5706,  1492,  1234,
+          310,  2183,  1139,  2729,   373,  2183,  3030,  7780,   300, 14880,
+        29889,    13,    13, 14023,  1881, 29901, 15228, 29901,  8680, 12475,
+          414,   526,   411,   278,  8041, 29892,  6320,  4097,   669, 13175,
+          472, 28052,   663,  5057,  4523,   669,   599,   278,   937, 10049,
+          414,   373,   278,  9088, 29889,   396, 11457,   374,   327, 29925,
+         2426, 30003, 13215,  5334,   346, 29891, 20164, 29881,   692,   700,
+          346, 29891, 29897,  6339, 29871, 29896, 29906, 29892, 29871, 29906,
+        29900, 29896, 29953,   894, 29901,   472,   607,  3762,   892,   937,
+        10049,   414,   373,   278,  9088,   363, 29973,    13, 14023,  1962,
+        29901, 21820,  1880,  3762,    13, 14023,  8252, 29901,  3645,   278,
+         3030,  7780,   300, 29892,   591,   508,  1074,   393, 21820,  1880,
+         3762,   338,   278,  1492,  1234, 29889,    13, 29984, 29901, 15228,
+        29901,   350,  1525, 22311,  4214, 29901,   319,  8969,  9348,  5684,
+        19518,   515,  3371,  1049,  3412,   411,   476, 29929,  3815,   304,
+          396, 29965,  4174, 29903,  1251, 11427,  1020,  3192, 29891, 22416,
+          319,  8969,   379, 29984, 20164,  1299, 29943, 29950, 29984, 29897,
+         5533, 29871, 29896, 29892, 29871, 29906, 29900, 29896, 29945,   894,
+        29901,   988,   526,   278, 19518,   515, 29973,    13, 29909, 29901,
+           13,    13,  2277, 29937, 13291, 29901,    13, 32001, 32005, 29871,
+        29906, 29900, 29896, 29955,  3371,  1049,  7945,  5337,    13,   262,
+         7766,  1199,   322,  3796,   363,   278, 21542,  8366,  6431,  8799,
+          292,  9226, 29889,   319, 28507,  1058,  9213,  1075,  8967,   670,
+         1833,  3838, 29901,   376, 29911,   514, 14332,   373,   445,  7945,
+          306,  5360,   963,  1213, 20279,   801,  4699, 29899, 29907,  1772,
+          383,  1026,  4630, 29892, 29871, 29906, 29896, 29892, 10503,  2347,
+          322,   471, 14914,   472,  5682,  4135,   382, 22670, 20795,  7817,
+          363, 10676,   541,   451,  2834, 29899,   386,   276,  2579,   292,
+          281,  3885, 29892, 10816,   263,   889,  1607, 24092,   304,   670,
+        20961,   271, 29889,   450,  5337,   261,   750, 12474,   368, 13726,
+          383,  1026,  4630, 29915, 29879,  8740,  1070,  2453,   262, 29889,
+          383,  1026,  4630,   471,  5492,   515,   278, 13457,   297,   931,
+          304, 14333,  6111, 29915, 29879,   564,   336, 10194,   373,  2610,
+        29871, 29941, 29900, 29892, 29871, 29906, 29900, 29896, 29955, 29889,
+          383,  1026,  4630, 29892,   263,  8368,   472,  3371,  1049,  4306,
+         3014, 29892,  2113,   263, 22309, 17793,   297, 29871, 29906, 29900,
+        29896, 29941,  1550,   540,   471,   263, 20183,   297,  1880,  3762,
+          411,   263, 32006, 32003,  2011,  1049, 32011,     2]), 'labels': tensor([ -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,    13, 32001, 32005,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,  -100,
+         -100,  -100, 32006, 32003,  2011,  1049, 32011,     2]), 'attention_mask': tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
+Traceback (most recent call last):
+  File "/NAS/yesh/NLP/self-rag/retrieval_lm/finetune.py", line 734, in <module>
+    main()
+  File "/NAS/yesh/NLP/self-rag/retrieval_lm/finetune.py", line 526, in main
+    print(train_dataset[1000])
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/datasets/arrow_dataset.py", line 3156, in __getitem__
+    return self._getitem(key)
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/datasets/arrow_dataset.py", line 3137, in _getitem
+    pa_subtable = query_table(self._data, key, indices=self._indices)
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/datasets/formatting/formatting.py", line 612, in query_table
+    _check_valid_index_key(key, size)
+  File "/NAS/yesh/NLP/.conda/selfrag/lib/python3.10/site-packages/datasets/formatting/formatting.py", line 552, in _check_valid_index_key
+    raise IndexError(f"Invalid key: {key} is out of bounds for size {size}")
+IndexError: Invalid key: 1000 is out of bounds for size 100
