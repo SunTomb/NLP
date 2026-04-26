@@ -805,3 +805,55 @@ GitHub:       https://github.com/SunTomb/NLP.git
 
 *最后更新：2026-04-26*
 
+### P21: Qwen2.5 Tokenizer 导致 `context_markups` 未定义
+
+**问题描述**：
+
+在使用 Qwen2.5-7B 作为基座模型运行 `finetune.py` 时，训练在数据处理阶段崩溃：
+
+```
+UnboundLocalError: local variable 'context_markups' referenced before assignment
+```
+
+**根因分析**：
+
+`finetune.py` 中 special token 的注册逻辑使用了 `isinstance` 进行 tokenizer 类型分发：
+
+```python
+if isinstance(tokenizer, LlamaTokenizer) or isinstance(tokenizer, LlamaTokenizerFast):
+    # 注册 special tokens + 定义 context_markups
+elif isinstance(tokenizer, GPTNeoXTokenizerFast):
+    # 仅注册 pad_token
+elif isinstance(tokenizer, GPT2Tokenizer) and isinstance(model, OPTForCausalLM):
+    # 仅注册 unk_token
+# 没有 else 分支！
+```
+
+Qwen2.5 使用 `Qwen2Tokenizer`（基于 tiktoken BPE），不匹配任何已有分支，导致：
+1. Special tokens（`[Retrieval]` 等 15 个）未被注册
+2. `context_markups` 变量从未被赋值
+3. 第 516 行引用未定义变量导致崩溃
+
+**解决方案**：
+
+在 `elif GPT2Tokenizer` 之后添加 `else` 分支，处理所有未知类型的 tokenizer：
+
+```python
+else:
+    # Generic tokenizer (Qwen, etc.)
+    if args.use_special_tokens is True:
+        special_token_dict = {"additional_special_tokens": [...]}
+        num_added_tokens = tokenizer.add_special_tokens(special_token_dict)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    context_markups = []
+    for token in ["<paragraph>", "</paragraph>"]:
+        context_markups.append(tokenizer.convert_tokens_to_ids(token))
+```
+
+**影响范围**：所有非 Llama/GPTNeoX/GPT2 基座模型的训练。
+
+**修改文件**：`self-rag/retrieval_lm/finetune.py` (第 485 行后插入)
+
+**附加问题**：同时发现训练脚本传入了 `finetune.py` 不支持的参数 `--optim adafactor --gradient_checkpointing --torch_dtype bfloat16`（这三项已在代码中硬编码），导致 `argparse` 报错。修复方式：从训练脚本中移除这三个参数。
+

@@ -483,6 +483,17 @@ def main():
         assert num_added_tokens == 1, "GPTNeoXTokenizer should only add one special token - the pad_token."
     elif isinstance(tokenizer, GPT2Tokenizer) and isinstance(model, OPTForCausalLM):
         num_added_tokens = tokenizer.add_special_tokens({'unk_token': '<unk>'})
+    else:
+        # Generic tokenizer (Qwen, etc.)
+        if args.use_special_tokens is True:
+            special_token_dict = {"additional_special_tokens": ["[No Retrieval]", "[Retrieval]", "[Continue to Use Evidence]", "[Irrelevant]", "[Relevant]", "<paragraph>", "</paragraph>", "[Utility:1]", "[Utility:2]", "[Utility:3]", "[Utility:4]", "[Utility:5]", "[Fully supported]", "[Partially supported]", "[No support / Contradictory]"]}
+            num_added_tokens = tokenizer.add_special_tokens(special_token_dict)
+            print(f'Added {num_added_tokens} special tokens for generic tokenizer')
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        context_markups = []
+        for token in ["<paragraph>", "</paragraph>"]:
+            context_markups.append(tokenizer.convert_tokens_to_ids(token))
 
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.

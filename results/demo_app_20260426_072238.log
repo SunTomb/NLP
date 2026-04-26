@@ -1,0 +1,29 @@
+============================================================
+ I4: 启动 Self-RAG Demo WebUI — Sun 26 Apr 2026 07:22:38 AM CST
+============================================================
+Loading model from /NAS/yesh/NLP/outputs/generator_llama2_7b...
+INFO 04-26 07:22:54 llm_engine.py:184] Initializing an LLM engine (v0.5.5) with config: model='/NAS/yesh/NLP/outputs/generator_llama2_7b', speculative_config=None, tokenizer='/NAS/yesh/NLP/outputs/generator_llama2_7b', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, rope_scaling=None, rope_theta=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=4096, download_dir=None, load_format=LoadFormat.AUTO, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto, quantization_param_path=None, device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='outlines'), observability_config=ObservabilityConfig(otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=0, served_model_name=/NAS/yesh/NLP/outputs/generator_llama2_7b, use_v2_block_manager=False, enable_prefix_caching=False)
+INFO 04-26 07:22:55 model_runner.py:879] Starting to load model /NAS/yesh/NLP/outputs/generator_llama2_7b...
+Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:03,  1.80s/it]
+Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:03<00:01,  1.86s/it]
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:05<00:00,  1.65s/it]
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:05<00:00,  1.70s/it]
+
+INFO 04-26 07:23:01 model_runner.py:890] Loading model weights took 12.5532 GB
+INFO 04-26 07:23:03 gpu_executor.py:121] # GPU blocks: 2874, # CPU blocks: 512
+INFO 04-26 07:23:06 model_runner.py:1181] Capturing the model for CUDA graphs. This may lead to unexpected consequences if the model is not static. To run the model in eager mode, set 'enforce_eager=True' or use '--enforce-eager' in the CLI.
+INFO 04-26 07:23:06 model_runner.py:1185] CUDA graphs can take additional 1~3 GiB memory per GPU. If you are running out of memory, consider decreasing `gpu_memory_utilization` or enforcing eager mode. You can also reduce the `max_num_seqs` as needed to decrease memory usage.
+INFO 04-26 07:23:28 model_runner.py:1300] Graph capturing finished in 22 secs.
+Launching Gradio demo...
+* Running on local URL:  http://0.0.0.0:7860
+
+Could not create share link. Missing file: /NAS/yesh/hf_cache/gradio/frpc/frpc_linux_amd64_v0.3. 
+
+Please check your internet connection. This can happen if your antivirus software blocks the download of this file. You can install manually by following these steps: 
+
+1. Download this file: https://cdn-media.huggingface.co/frpc-gradio-0.3/frpc_linux_amd64
+2. Rename the downloaded file to: frpc_linux_amd64_v0.3
+3. Move the file to this location: /NAS/yesh/hf_cache/gradio/frpc
+Processed prompts:   0%|          | 0/1 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]Processed prompts: 100%|██████████| 1/1 [00:00<00:00,  1.72it/s, est. speed input: 37.92 toks/s, output: 36.19 toks/s]Processed prompts: 100%|██████████| 1/1 [00:00<00:00,  1.72it/s, est. speed input: 37.92 toks/s, output: 36.19 toks/s]
+Processed prompts:   0%|          | 0/1 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]Processed prompts: 100%|██████████| 1/1 [00:03<00:00,  3.38s/it, est. speed input: 6.51 toks/s, output: 36.97 toks/s]Processed prompts: 100%|██████████| 1/1 [00:03<00:00,  3.38s/it, est. speed input: 6.51 toks/s, output: 36.97 toks/s]
