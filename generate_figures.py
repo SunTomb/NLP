@@ -158,9 +158,9 @@ def fig4_loss_curves():
     # Generator Llama-2: 使用最大的 gen_train 日志
     gen_log = os.path.join(logs_dir, 'gen_train_20260423_010758.log')
     if not os.path.exists(gen_log): gen_log = None
-    # Qwen
+    # Qwen: 合并原始+恢复日志
     qwen_log = os.path.join(logs_dir, 'train_qwen_20260426_072238.log')
-    if not os.path.exists(qwen_log): qwen_log = None
+    qwen_resume = os.path.join(logs_dir, 'train_qwen_resume_20260428_202428.log')
     # ZH
     zh_log = os.path.join(logs_dir, 'train_zh_20260426_072238.log')
     if not os.path.exists(zh_log): zh_log = None
@@ -174,8 +174,13 @@ def fig4_loss_curves():
             # 降采样
             idx = list(range(0, len(s), max(1, len(s)//500)))
             axes[0].plot([s[i] for i in idx], [l[i] for i in idx], alpha=0.7, linewidth=0.8, label='Llama-2-7B', color='#3b82f6')
-    if qwen_log:
+    if os.path.exists(qwen_log):
         s, l = parse_loss(qwen_log)
+        # 合并恢复日志
+        if os.path.exists(qwen_resume):
+            s2, l2 = parse_loss(qwen_resume)
+            s.extend(s2)
+            l.extend(l2)
         if s:
             idx = list(range(0, len(s), max(1, len(s)//500)))
             axes[0].plot([s[i] for i in idx], [l[i] for i in idx], alpha=0.7, linewidth=0.8, label='Qwen2.5-7B', color='#ef4444')
@@ -246,6 +251,42 @@ def fig5_improvement():
     print('✅ fig5_improvement')
 
 # ============================================================
+# Fig 6: 跨架构对比 (Qwen2.5 vs Llama-2)
+# ============================================================
+def fig6_cross_arch():
+    tasks = ['PopQA\n(no_ret)', 'PopQA\n(always_ret)', 'ARC-C', 'TriviaQA']
+    qwen   = [19.44, 49.68, 68.09, 26.80]
+    llama  = [23.45, 50.46, 57.25, 31.50]
+    off    = [28.66, 52.32, 64.25, 38.80]
+
+    x = np.arange(len(tasks))
+    w = 0.25
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+
+    b1 = ax.bar(x - w, qwen, w, label='Qwen2.5-7B', color='#ef4444', edgecolor='white', linewidth=0.5)
+    b2 = ax.bar(x, llama, w, label='Our (Llama-2)', color='#3b82f6', edgecolor='white', linewidth=0.5)
+    b3 = ax.bar(x + w, off, w, label='Official', color='#10b981', edgecolor='white', linewidth=0.5)
+
+    for bars in [b1, b2, b3]:
+        for bar in bars:
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.8,
+                    f'{bar.get_height():.1f}%', ha='center', va='bottom', fontsize=8, fontweight='bold')
+
+    ax.set_ylabel('Accuracy (%)', fontsize=12)
+    ax.set_title('跨架构评测对比: Qwen2.5-7B vs Llama-2-7B', fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(tasks, fontsize=10)
+    ax.set_ylim(0, 80)
+    ax.legend(fontsize=10, loc='upper left')
+    ax.grid(axis='y', alpha=0.3)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    fig.savefig(os.path.join(OUT, 'fig6_cross_arch.pdf'))
+    fig.savefig(os.path.join(OUT, 'fig6_cross_arch.png'))
+    plt.close(fig)
+    print('✅ fig6_cross_arch')
+
+# ============================================================
 if __name__ == '__main__':
     print('开始生成图表...\n')
     fig1_main_results()
@@ -253,4 +294,6 @@ if __name__ == '__main__':
     fig3_ablation()
     fig4_loss_curves()
     fig5_improvement()
+    fig6_cross_arch()
     print(f'\n所有图表已保存到 {OUT}/')
+
