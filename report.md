@@ -233,6 +233,20 @@ Generator 模型在 145K 条带反思 Token 的训练数据上训练 3 个 epoch
 - **vLLM 推理加速**：使用 vLLM 引擎进行高效推理，GPU 显存占用约 37GB
 - **SSH 隧道访问**：通过 `ssh -L 7860:localhost:7860` 映射服务器端口
 
+下图展示了系统的初始界面。左侧为用户输入区与快捷测试用例，右侧为反思 Token 图例及模型响应区。图例使用不同颜色对四类反思 Token 进行了编码：蓝色表示检索决策（`[Retrieval]` / `[No Retrieval]`），绿色表示质量评估（`[Relevant]` / `[Fully supported]`），紫色表示效用评分（`[Utility:1~5]`）。
+
+**图7：Self-RAG 交互式 Demo 系统初始界面**
+
+![Demo 初始界面](figures/1.png)
+
+下方展示了两个实际交互案例。左图中，用户询问量子计算的概念，模型首先生成 `[Retrieval]` 信号表明需要外部知识辅助，随后给出解释并标注 `[Fully supported]`（完全支持），最终自评 `[Utility:5]`（最高分）。右图中，用户要求编写 Fibonacci 函数，模型同样触发了 `[Retrieval]`，但对自身生成的代码仅给出 `[Partially supported]`（部分支持），体现了 Self-RAG 诚实的自我批判能力。
+
+**图8：Self-RAG Demo 交互实例——反思 Token 可视化效果**
+
+| 量子计算解释：触发检索 + 完全支持 | 代码生成：触发检索 + 部分支持 |
+|:---:|:---:|
+| ![量子计算](figures/2.png) | ![Fibonacci 代码](figures/3.png) |
+
 ---
 
 ## 8. 工程挑战与解决方案

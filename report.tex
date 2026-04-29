@@ -13,9 +13,9 @@
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage{enumitem}
 \usepackage{url}
-\usepackage{natbib}
+\usepackage[numbers]{natbib}
 \usepackage{fancyhdr}
-
+\setlength{\headheight}{14pt}
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[C]{Self-RAG 复现与改进实验报告}
@@ -425,6 +425,34 @@ TriviaQA & no\_retrieval & 26.80\% & 31.50\% & 38.80\% \\
     \item \textbf{vLLM 推理加速}：使用 vLLM 引擎进行高效推理，GPU 显存占用约 37GB；
     \item \textbf{SSH 隧道访问}：通过 \texttt{ssh -L 7860:localhost:7860} 将服务器端口映射至本地。
 \end{itemize}
+
+图~\ref{fig:demo_ui}~展示了系统的初始界面。左侧为用户输入区与快捷测试用例，右侧为反思 Token 图例及模型响应区。图例使用不同颜色对四类反思 Token 进行了编码：蓝色表示检索决策（\texttt{[Retrieval]} / \texttt{[No Retrieval]}），绿色表示质量评估（\texttt{[Relevant]} / \texttt{[Fully supported]}），紫色表示效用评分（\texttt{[Utility:1\textasciitilde5]}）。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/1.png}
+\caption{Self-RAG 交互式 Demo 系统初始界面}
+\label{fig:demo_ui}
+\end{figure}
+
+图~\ref{fig:demo_examples}~展示了两个实际交互案例。左图中，用户询问量子计算的概念，模型首先生成 \texttt{[Retrieval]} 信号表明需要外部知识辅助，随后给出解释并标注 \texttt{[Fully supported]}（完全支持），最终自评 \texttt{[Utility:5]}（最高分）。右图中，用户要求编写 Fibonacci 函数，模型同样触发了 \texttt{[Retrieval]}，但对自身生成的代码仅给出 \texttt{[Partially supported]}（部分支持），体现了 Self-RAG 诚实的自我批判能力。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/2.png}
+    \caption{量子计算解释：触发检索 + 完全支持}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/3.png}
+    \caption{代码生成：触发检索 + 部分支持}
+\end{subfigure}
+\caption{Self-RAG Demo 交互实例：反思 Token 可视化效果}
+\label{fig:demo_examples}
+\end{figure}
 
 % ================================================================
 \section{工程挑战与解决方案}
