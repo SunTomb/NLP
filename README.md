@@ -90,9 +90,10 @@ bash run_app.sh
 ## 📖 详细报告
 
 更多关于消融实验的设计、跨架构泛化的探讨，以及项目中遭遇的显存优化、数据预处理等 21 个工程难题的详尽解答，请参阅：
+
 - 📄 [课程实验报告 (PDF)](report.pdf)
 - 📝 [工程踩坑记录 (Markdown)](problem.md)
 
 ## 🙏 致谢
 
-本项目基于 [Self-RAG 官方仓库](https://github.com/AkariAsai/self-rag) 进行了二次开发。感谢中科大《自然语言处理》课程组提供的计算资源支持。
+本项目基于 [Self-RAG 官方仓库](https://github.com/AkariAsai/self-rag) 进行了二次开发。感谢 USTC Lab for Data Science 提供的计算资源支持。
