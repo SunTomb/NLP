@@ -33,8 +33,11 @@
 
 \title{\bf 自然语言处理课程报告\\[0.5em]
 \Large Self-RAG: 自反思检索增强生成的复现与改进}
-\author{姓名：\underline{~~~~~~~~~叶盛豪~~~~~~~~~} \quad 学号：\underline{~~~~~PB24000227~~~~~~}}
-\date{\today}
+\author{\begin{tabular}{cc}
+姓名：\underline{~~~~~~~~~叶盛豪~~~~~~~~~} & 学号：\underline{~~~~~PB24000227~~~~~~} \\
+姓名：\underline{~~~~~~~~~~闪瑜~~~~~~~~~~} & 学号：\underline{~~~~~PB23051016~~~~~~}
+\end{tabular}}
+\date{2026 年 4 月 29 日}
 
 \begin{document}
 \maketitle
@@ -42,7 +45,7 @@
 \begin{abstract}
 检索增强生成（Retrieval-Augmented Generation, RAG）是提升大语言模型事实准确性的重要范式，但传统 RAG 方法存在不加区分地检索外部文档、无法判断检索结果质量等问题。Self-RAG 通过引入反思 Token（Reflection Tokens）机制，使语言模型能够在推理过程中自主决定是否检索、评估检索段落的相关性与支持度，并对生成结果进行自我批判。
 
-本报告对 Self-RAG 进行了系统性的复现与改进实验。在复现阶段，我们基于 Llama-2-7B 成功训练了 Critic 和 Generator 模型，在 PopQA、ARC-Challenge 和 TriviaQA 三个数据集上的评测结果与原论文保持一致。在改进阶段，我们完成了三项工作：（1）消融实验揭示了 Groundness 评分机制是检索增强的核心贡献因子（贡献 4.22 个百分点），而 Utility 评分对短答案 QA 任务影响甚微；（2）将 Self-RAG 框架迁移至 Qwen2.5-7B 基座，验证了方法的跨架构泛化能力；（3）构建了基于 Gradio 的交互式 Demo 系统。此外，我们详细记录了 21 项工程问题及其解决方案，为后续研究提供了实践参考。
+本报告对 Self-RAG 进行了系统性的复现与改进实验。在复现阶段，我们基于 Llama-2-7B 成功训练了 Critic 和 Generator 模型，在 PopQA、ARC-Challenge 和 TriviaQA 三个数据集上的评测结果与原论文保持一致。在改进阶段，我们完成了三项工作：（1）消融实验揭示了 Groundness 评分机制是检索增强的核心贡献因子（贡献 4.22 个百分点），而 Utility 评分对短答案 QA 任务影响甚微；（2）将 Self-RAG 框架迁移至 Qwen2.5-7B 基座，验证了方法的跨架构泛化能力；（3）构建了基于 Gradio 的交互式 Demo 系统。此外，我们详细记录了 21 项工程问题及其解决方案，并开源了完整代码与报告材料，项目仓库地址为：\url{https://github.com/SunTomb/NLP}。本报告由叶盛豪、闪瑜合作完成，二人工作量各占 50\%。
 
 \noindent\textbf{关键词}：检索增强生成；反思 Token；Self-RAG；消融实验；大语言模型
 \end{abstract}
@@ -52,6 +55,8 @@
 \label{sec:intro}
 
 大语言模型（Large Language Models, LLMs）在自然语言处理的众多任务上取得了显著进展，但其核心局限之一在于\textbf{幻觉}（Hallucination）——模型可能生成看似流畅但事实错误的内容。这一问题在知识密集型任务（如开放域问答）中尤为突出，因为模型的参数化知识不可避免地存在时效性和覆盖范围的限制。
+
+从 NLP 任务角度看，本文关注的是\textbf{知识密集型文本生成}，尤其是开放域问答、科学推理问答和事实型短答案生成。此类任务要求模型不仅能够理解用户问题，还需要从大规模背景知识中定位相关事实，并将证据转化为简洁、准确、可验证的自然语言回答。与情感分类、命名实体识别等传统判别式任务相比，知识密集型生成同时考验模型的语言组织能力、事实记忆能力和证据利用能力；与普通聊天生成相比，它对答案真实性和证据一致性的要求更高。PopQA 中的长尾实体问题、TriviaQA 中的开放域事实问答，以及 ARC-Challenge 中的科学常识推理，分别代表了事实召回、知识覆盖和推理应用三类典型挑战。
 
 检索增强生成（RAG）通过在推理时引入外部检索器来缓解这一问题：模型先从知识库中检索相关文档，再基于检索结果生成回答。然而，传统 RAG 方法存在以下不足：
 \begin{enumerate}[leftmargin=2em]
@@ -75,7 +80,11 @@ Asai 等人 (2024) 提出的 \textbf{Self-RAG}（Self-Reflective Retrieval-Augme
 \section{相关工作}
 \label{sec:related}
 
-\textbf{检索增强生成（RAG）。}Lewis 等人 (2020) 提出的 RAG 模型将预训练语言模型与稀疏/稠密检索器相结合，在开放域 QA 上取得了显著提升。后续工作如 REALM (Guu et al., 2020)、Atlas (Izacard et al., 2023) 进一步优化了检索器与生成器的联合训练。然而，这些方法通常对所有查询执行统一检索，缺乏按需检索的灵活性。
+\textbf{检索增强生成（RAG）。}Lewis 等人 (2020) 提出的 RAG 模型将预训练语言模型与稀疏/稠密检索器相结合，在开放域 QA 上取得了显著提升。后续工作如 REALM (Guu et al., 2020)、Atlas (Izacard et al., 2023) 进一步优化了检索器与生成器的联合训练。这类方法的共同优点是能够将模型参数之外的知识引入生成过程，从而缓解知识过时、长尾事实缺失和事实幻觉等问题；但其局限也很明显：检索通常作为固定前置步骤，对所有问题统一执行，既增加了推理成本，也可能把无关或矛盾证据引入上下文。
+
+\textbf{现有方法的局限性。}传统 RAG 系统通常假设“检索到的文档越多越好”，但实际开放域问答和知识密集型生成并不总是需要外部知识。例如简单常识题、数学题或模型已掌握的高频事实，强制检索反而可能带来噪声；而对于长尾实体、时效性知识或证据依赖较强的问题，缺少检索又会导致模型依赖不可靠的参数化记忆。此外，许多 RAG 方法只关注“检索—生成”链路本身，并不显式判断检索段落是否相关、生成答案是否被证据支持、最终回答是否真正有用。因此，一旦检索器返回弱相关段落，生成器仍可能流畅地编造答案，形成“看似有引用、实则无支撑”的幻觉。
+
+\textbf{Self-RAG 的优越性。}Self-RAG 的主要优势在于把检索决策、证据评估和生成质量判断都转化为语言模型可学习、可输出的反思 Token。相比固定检索策略，它能够在生成过程中显式表达是否需要检索；相比只拼接文档的 RAG，它进一步评估段落相关性和回答支持度；相比外部后处理打分器，它将自我批判能力内化进同一个生成模型中。因此，Self-RAG 不只是“带检索的生成模型”，而是一个具备自适应检索和自我评估能力的生成框架。
 
 \textbf{自适应检索。}部分工作探索了让模型自主决定是否检索的机制。FLARE (Jiang et al., 2023) 通过检测低置信度 Token 来触发检索；Self-RAG 则通过训练模型生成显式的检索决策 Token，实现了更精细的自适应控制。
 
@@ -484,7 +493,7 @@ P21 & Qwen tokenizer 不兼容 & finetune.py 仅处理 Llama 类型 & 添加通�
 完整的 21 项问题记录及详细解决过程见项目文档 \texttt{problem.md}。
 
 % ================================================================
-\section{结论与展望}
+\section{结论}
 \label{sec:conclusion}
 
 本报告对 Self-RAG 进行了系统性的复现与改进实验，主要结论如下：
@@ -501,13 +510,49 @@ P21 & Qwen tokenizer 不兼容 & finetune.py 仅处理 Llama 类型 & 添加通�
     \item \textbf{工程实践}：系统记录了 21 项工程问题，涵盖显存优化（Adafactor）、数据处理（ctxs 字段修复）、跨架构兼容（tokenizer 适配）等方面，为后续复现提供了详尽参考。
 \end{enumerate}
 
-\textbf{未来工作方向：}
-\begin{itemize}[leftmargin=2em]
-    \item 在更多基座模型（如 Mistral-7B）上验证跨架构泛化规律；
-    \item 在长文本生成任务（如传记写作）上验证 Utility 评分的价值；
-    \item 探索中文 QA 数据集上的 Self-RAG 适配，构造带中文反思 Token 的训练数据；
-    \item 集成在线检索器（如 Contriever），实现端到端的自适应 RAG 系统。
-\end{itemize}
+\section{局限性与未来工作}
+\label{sec:limitations}
+
+尽管 Self-RAG 在知识密集型任务上表现出显著优势，本方法和本项目复现实验仍存在若干局限。
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{训练与推理成本较高。}Self-RAG 不仅需要训练 Generator，还需要先训练或使用 Critic 对数据进行反思 Token 标注。对于 7B 级别模型，即使在单卡 A40 上使用 BF16、Adafactor 和 Gradient Checkpointing，完整训练仍需要数十小时。推理阶段如果启用 always\_retrieve，还需要对多个检索段落分别生成候选回答并打分，吞吐成本明显高于普通生成。
+
+    \item \textbf{依赖高质量检索上下文。}Self-RAG 的优势很大程度上建立在检索段落质量之上。如果评测数据缺少 \texttt{ctxs} 字段，或检索器返回的段落与问题弱相关，always\_retrieve 模式会退化甚至引入额外噪声。本项目在 PopQA 上曾遇到预检索段落缺失导致评测结果异常的问题，说明数据完整性和检索质量是复现实验中的关键前提。
+
+    \item \textbf{反思 Token 的监督信号仍有噪声。}原论文使用 GPT-4 产生 Critic 标注，本项目由于官方 Google Drive 数据失效，部分数据获取和处理需要依赖 HuggingFace 替代源与工程化修复。自动标注虽然降低了人工成本，但反思 Token 的质量仍受标注模型、提示模板和数据分布影响。
+
+    \item \textbf{评测指标存在任务适配问题。}本实验统一使用 match accuracy，即生成文本与参考答案子串匹配。该指标适合短答案 QA，但对长文本输出可能产生误判，尤其在 PopQA 中曾出现长文本与短别名答案偶然匹配导致虚假高分的问题。因此，Self-RAG 在摘要、传记生成等长文本任务上的评价仍需要更细粒度的事实一致性指标。
+
+    \item \textbf{跨架构迁移具有任务依赖性。}Qwen2.5-7B 在 ARC-C 上显著优于 Llama-2-7B，但在 PopQA no\_retrieval 和 TriviaQA 上低于 Llama-2。这说明更强的通用推理基座不必然带来更好的英文知识召回性能，Self-RAG 的收益会受到基座模型预训练语料、词表设计和任务类型共同影响。
+\end{enumerate}
+
+基于上述局限，后续可以从四个方向拓展：第一，在更多基座模型（如 Mistral-7B、Llama-3、Qwen3 等）上系统验证 Self-RAG 的跨架构规律；第二，在中文 QA 和中英混合检索场景中构造反思 Token 数据，评估该框架对中文 NLP 任务的适配能力；第三，将 Contriever 或其他在线检索器接入推理链路，从预检索评测扩展到真正端到端的自适应 RAG 系统；第四，在长文本生成任务上重新评估 Utility 评分的价值，并引入事实一致性、引用准确率和人工评价等更全面的指标。
+
+% ================================================================
+\section{组员分工}
+\label{sec:contribution}
+
+本项目由叶盛豪、闪瑜两位组员合作完成，整体工作量基本均衡，各占 50\%。具体分工如下：
+
+\begin{table}[H]
+\centering
+\caption{组员分工说明}
+\label{tab:contribution}
+\begin{tabular}{p{2.8cm}p{2.8cm}p{8cm}}
+\toprule
+组员 & 学号 & 主要负责内容 \\
+\midrule
+叶盛豪 & PB24000227 & 负责 Self-RAG 原论文与开源代码阅读、实验环境搭建、Llama-2-7B Critic 与 Generator 训练复现、主实验评测结果整理、报告 LaTeX 框架撰写与图表集成。 \\
+\midrule
+闪瑜 & PB23051016 & 负责训练与评测数据下载及预处理、PopQA/ARC-C/TriviaQA 评测脚本调试、反思 Token 消融实验设计与执行、Qwen2.5-7B 跨架构迁移实验、交互式 Demo 与工程问题文档整理。 \\
+\midrule
+共同完成 & --- & 共同完成论文方法讨论、实验方案设计、结果分析、报告文字修改与最终材料整理。 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+项目开源仓库地址为：\url{https://github.com/SunTomb/NLP}。
 
 \begin{thebibliography}{9}
 \bibitem{selfrag} Asai, A., Wu, Z., Wang, Y., Sil, A., \& Hajishirzi, H. (2024). Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection. \textit{ICLR 2024}.
