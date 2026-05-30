@@ -35,12 +35,12 @@
 ```text
 NLP/
 ├── scripts/              # 运行脚本目录
-│   ├── run_train_critic.sh    # 训练 Critic
-│   ├── run_train_generator.sh # 训练 Generator
-│   ├── run_eval_*.sh          # 各个数据集的评测脚本
-│   └── run_demo_app.sh        # 启动可视化 WebUI
+│   ├── train_critic.sh       # 训练 Critic
+│   ├── train_generator.sh    # 训练 Generator
+│   └── run_eval_*.sh         # 各个数据集的评测脚本
 ├── demo/                 # 交互式前端
-│   └── app.py            # Gradio WebUI 源码
+│   ├── app.py            # Gradio WebUI 源码
+│   └── run_app.sh        # 启动可视化 WebUI
 ├── figures/              # 数据可视化输出
 ├── generate_figures.py   # 一键生成论文图表的 Python 脚本
 ├── report.pdf            # 最终的课程实验报告 
@@ -56,6 +56,8 @@ NLP/
 
 推荐使用 Conda 和 vLLM (用于极速评测和推理)：
 
+> 训练、评测和 WebUI 推理依赖 CUDA GPU 与 vLLM，建议在 Linux GPU 服务器上运行；macOS/普通 Windows 本地环境主要适合阅读代码和编译报告。
+
 ```bash
 conda create -n selfrag python=3.10
 conda activate selfrag
@@ -63,26 +65,33 @@ pip install -r self-rag/requirements.txt
 pip install vllm==0.5.5 gradio
 ```
 
-### 2. 训练 Generator
+### 2. 下载数据
+
+```bash
+bash scripts/download_data.sh
+```
+
+如果后续训练提示 `data/generator/output_selfrag_training_data.jsonl` 不存在，请检查 `data/generator/` 下实际下载的 `.jsonl` 文件名，并相应修改 `scripts/train_generator.sh` 中的 `TRAIN_FILE`。
+
+### 3. 训练 Generator
 
 ```bash
 # 启动训练（推荐使用 Adafactor 和 gradient checkpointing 防 OOM）
-bash scripts/run_train_generator.sh
+bash scripts/train_generator.sh
 ```
 
-### 3. 评测 (Evaluation)
+### 4. 评测 (Evaluation)
 
 ```bash
 # 对 PopQA 运行 always_retrieve 评测模式
 bash scripts/run_eval_popqa_full.sh
 ```
 
-### 4. 启动 WebUI (体验反思 Token 可视化)
+### 5. 启动 WebUI (体验反思 Token 可视化)
 
 ```bash
-# 进入 demo 文件夹并启动
-cd demo
-bash run_app.sh
+# 从项目根目录启动
+bash demo/run_app.sh
 ```
 
 ---
