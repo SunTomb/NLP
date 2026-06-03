@@ -1,0 +1,40 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+
+# Environments
+.conda/
+.venv/
+venv/
+.env
+.env.*
+
+# Large model/checkpoint artifacts
+models/
+outputs/
+checkpoints/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.joblib
+*.pkl
+
+# Large training data mirrored locally from the cluster
+data/generator/train.jsonl
+data/critic/critic_train_data_train.json
+
+# Logs and local runtime state
+logs/
+.gradio/
+*.bak
+*.bak_*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
